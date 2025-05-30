@@ -1,31 +1,41 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-import chromedriver_autoinstaller
+from flask import Flask
+import threading
 import time
 import json
 import datetime
 import requests
 import os
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+import chromedriver_autoinstaller
+
 # ========== CONFIG ==========
-DISCORD_WEBHOOK_URL = os.getenv("https://discord.com/api/webhooks/1377667687739822136/xOfWCnW9sZ17Wqkg3zcMS9EBmdVB5a0pwLiR4r1IC3O25DleLiUkECICfuTJTPLyUkO4")  # Set this in Render environment
+DISCORD_WEBHOOK_URL = os.getenv("https://discord.com/api/webhooks/1377667687739822136/xOfWCnW9sZ17Wqkg3zcMS9EBmdVB5a0pwLiR4r1IC3O25DleLiUkECICfuTJTPLyUkO4")
 CHECK_INTERVAL = 30  # Seconds
+
+# ========== FLASK SETUP ==========
+app = Flask(__name__)
+
+@app.route("/")
+def index():
+    return "Pop Mart monitor is running!"
 
 # ========== LOAD PRODUCTS ==========
 with open("products.json", "r") as f:
     PRODUCTS = json.load(f)
 
 # ========== SETUP SELENIUM ==========
-chromedriver_autoinstaller.install()  # Auto-downloads compatible chromedriver
+chromedriver_autoinstaller.install()
+driver_path = os.path.join(os.getcwd(), "chromedriver")
 
 options = Options()
 options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 
-driver_path = os.path.join(os.getcwd(), "chromedriver")
 service = Service(driver_path)
 driver = webdriver.Chrome(service=service, options=options)
 
@@ -42,8 +52,7 @@ def send_discord_alert(product_name, url):
 def is_in_stock_popmart(url):
     try:
         driver.get(url)
-        time.sleep(3)  # Let JavaScript load
-
+        time.sleep(3)
         buttons = driver.find_elements(By.TAG_NAME, "div")
         for btn in buttons:
             text = btn.text.strip().lower()
@@ -60,7 +69,7 @@ def within_time_window():
     now = datetime.datetime.now().time()
     return datetime.time(19, 0) <= now <= datetime.time(22, 0)
 
-# ========== MAIN LOOP ==========
+# ========== MONITORING LOOP ==========
 def monitor():
     print("🔁 Monitoring started...\n")
     product_states = {name: False for name in PRODUCTS}
@@ -84,8 +93,7 @@ def monitor():
             print(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ⏳ Outside 7–10 PM. Sleeping...")
         time.sleep(CHECK_INTERVAL)
 
+# ========== RUN ==========
 if __name__ == "__main__":
-    try:
-        monitor()
-    finally:
-        driver.quit()
+    threading.Thread(target=monitor).start()
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
