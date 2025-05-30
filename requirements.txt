@@ -1,4 +1,3 @@
 flask
-selenium
 requests
-chromedriver-autoinstaller
+undetected-chromedriver

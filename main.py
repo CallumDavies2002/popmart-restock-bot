@@ -5,15 +5,11 @@ import json
 import datetime
 import requests
 import os
-
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
-import chromedriver_autoinstaller
 
 # ========== CONFIG ==========
-DISCORD_WEBHOOK_URL = os.getenv("https://discord.com/api/webhooks/1377667687739822136/xOfWCnW9sZ17Wqkg3zcMS9EBmdVB5a0pwLiR4r1IC3O25DleLiUkECICfuTJTPLyUkO4")
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
 CHECK_INTERVAL = 30  # Seconds
 
 # ========== FLASK SETUP ==========
@@ -27,17 +23,13 @@ def index():
 with open("products.json", "r") as f:
     PRODUCTS = json.load(f)
 
-# ========== SETUP SELENIUM ==========
-chromedriver_autoinstaller.install()
-driver_path = os.path.join(os.getcwd(), "chromedriver")
-
-options = Options()
-options.add_argument("--headless=new")
+# ========== SETUP SELENIUM (undetected-chromedriver) ==========
+options = uc.ChromeOptions()
+options.add_argument("--headless")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 
-service = Service(driver_path)
-driver = webdriver.Chrome(service=service, options=options)
+driver = uc.Chrome(options=options)
 
 # ========== STOCK CHECK ==========
 def send_discord_alert(product_name, url):
@@ -95,5 +87,5 @@ def monitor():
 
 # ========== RUN ==========
 if __name__ == "__main__":
-    threading.Thread(target=monitor).start()
+    threading.Thread(target=monitor, daemon=True).start()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
