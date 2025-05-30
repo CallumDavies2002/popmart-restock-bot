@@ -29,6 +29,11 @@ options.add_argument("--headless")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 
+# Avoid TypeError: Binary location must be a string
+chrome_bin = os.getenv("GOOGLE_CHROME_BIN")
+if chrome_bin:
+    options.binary_location = chrome_bin
+
 driver = uc.Chrome(options=options)
 
 # ========== STOCK CHECK ==========
